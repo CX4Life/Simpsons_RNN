@@ -5,15 +5,20 @@ __author__ = 'Tim Woods'
 __license__ = 'MIT'
 __copyright__ = 'Copyright (c) 2017 Tim Woods'
 
-from bs4 import BeautifulSoup
+from queue import Queue
 import urllib
 import argparse
+import threading
+from bs4 import BeautifulSoup
 
 BASE_URL = 'https://www.springfieldspringfield.co.uk/'
 ROOT = 'episode_scripts.php?tv-show=the-simpsons'
 
 
 def parse_args():
+    """Add support for excluding characters from the script by using the
+    -exclude parameter, followed by a string of characters to exclude.
+    """
     parser = argparse.ArgumentParser(description='Scrapper.py scrapes the Springfield, Springfield'
                                                  ' site for every Simpsons script ever! Optionally'
                                                  ' takes a string of characters to exclude from the'
@@ -55,24 +60,37 @@ def clean_script(script_string, args):
     return script
 
 
-def write_script_to_file(link_tag, args):
-    """Take a link tag, get the episode name, retrieve the script, and write to a txt file."""
-    page_url = link_tag.get('href')
-    episode_name = filesystem_friendly_name(link_tag.get_text())
-    print(episode_name)
-    script = get_html_from_script_page(page_url)
-    output_file = open(episode_name + '.txt', 'w')
-    output_file.write(clean_script(script, args))
+def write_script_to_file(queue, args):
+    """Remove a link tag from the queue, get the episode name, retrieve the script,
+    and write to a txt file.
+    """
+    while True:
+        link_tag = queue.get()
+        page_url = link_tag.get('href')
+        episode_name = filesystem_friendly_name(link_tag.get_text())
+        print(episode_name)
+        script = get_html_from_script_page(page_url)
+        output_file = open(episode_name + '.txt', 'w')
+        output_file.write(clean_script(script, args))
+        queue.task_done()
 
 
 def main():
     """Get every link from the 'root' URL, then retrieve the script for each
-    episode's page, and write it to a text file."""
+    episode's page using 8 threads, and write it to a text file."""
     args = parse_args()
     every_link = return_links_to_all_episodes()
+    link_queue = Queue()
     for link_tag in every_link:
-        write_script_to_file(link_tag, args)
-        break
+        link_queue.put(link_tag)
+
+    for _ in range(8):
+        thread = threading.Thread(target=write_script_to_file(link_queue, args))
+        thread.daemon = True
+        thread.start()
+
+    link_queue.join()
+
 
 if __name__ == '__main__':
     main()
