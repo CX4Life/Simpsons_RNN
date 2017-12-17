@@ -6,7 +6,7 @@ __license__ = 'MIT'
 __copyright__ = 'Copyright (c) 2017 Tim Woods'
 
 from queue import Queue
-import urllib
+import urllib.request
 import argparse
 import threading
 from bs4 import BeautifulSoup
@@ -33,7 +33,7 @@ def parse_args():
 def return_links_to_all_episodes():
     """Get the links to every page containing a script."""
     all_links_page = urllib.request.urlopen(BASE_URL + ROOT).read()
-    soup = BeautifulSoup(all_links_page, "html5lib")
+    soup = BeautifulSoup(all_links_page, "html.parser")
     links = soup.find_all("a", class_='season-episode-title')
     return links
 
@@ -41,7 +41,7 @@ def return_links_to_all_episodes():
 def get_html_from_script_page(page_url):
     """Fetch the text from each episode page and return it as a stripped string."""
     script_page = urllib.request.urlopen(BASE_URL + page_url)
-    soup = BeautifulSoup(script_page, "html5lib")
+    soup = BeautifulSoup(script_page, "html.parser")
     script = soup.find("div", class_="scrolling-script-container").get_text()
     return script.lstrip().rstrip()
 
@@ -50,7 +50,8 @@ def filesystem_friendly_name(episode_name):
     """Change human-readable episode name to filename by removing number
     and replacing spaces with underscores."""
     chunks = episode_name.split(' ')
-    return '_'.join(chunks[1:])
+    clean_chunks = [''.join([y for y in x if y not in '`#%*&\:;!?{}<>/+|"\'']) for x in chunks]
+    return '_'.join(clean_chunks[1:])
 
 
 def clean_script(script_string, args):
@@ -64,14 +65,18 @@ def write_script_to_file(queue, args):
     """Remove a link tag from the queue, get the episode name, retrieve the script,
     and write to a txt file.
     """
-    while True:
+    while not queue.empty():
         link_tag = queue.get()
         page_url = link_tag.get('href')
         episode_name = filesystem_friendly_name(link_tag.get_text())
         print(episode_name)
         script = get_html_from_script_page(page_url)
-        output_file = open(episode_name + '.txt', 'w')
-        output_file.write(clean_script(script, args))
+        cleaned = clean_script(script, args)
+        output_file = open(episode_name + '.txt', 'wb')
+        try:
+            output_file.write(cleaned.encode('ascii', 'ignore'))
+        except UnicodeEncodeError:
+            continue
         queue.task_done()
 
 
@@ -88,8 +93,6 @@ def main():
         thread = threading.Thread(target=write_script_to_file(link_queue, args))
         thread.daemon = True
         thread.start()
-
-    link_queue.join()
 
 
 if __name__ == '__main__':
