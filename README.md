@@ -23,4 +23,10 @@ beautifulsoup4 - 4.6.0
 
 #### History
 
+12/23/17 - Complete work on tokenizing scripts, which maps the
+ten-thousand most common words to an integer, or -1 if less common.
+
+12/22/17 - Begin work on creating converting scripts to machine
+friendly representations
+
 12/16/17 - Initial Commit
