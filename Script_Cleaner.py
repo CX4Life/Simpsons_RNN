@@ -36,7 +36,7 @@ def replace_text(list_of_words, dict):
 
 def write_to_file_using_ints(list_of_text, lookup_dict, filename):
     """Write the cleaned text to file."""
-    list_of_ints = [lookup_dict[x] if x in lookup_dict else -1 for x in list_of_text]
+    list_of_ints = [lookup_dict[x] if x in lookup_dict else 0 for x in list_of_text]
     with open(CLEANED_DIR + filename, 'w') as output:
         json.dump(list_of_ints, output)
 
@@ -67,8 +67,8 @@ def make_key_val_by_frequency(dictionary):
     val_to_word = {}
     sorted_x = sorted(dictionary.items(), key=operator.itemgetter(1), reverse=True)
     for rank, tuple in enumerate(sorted_x):
-        word_to_val[tuple[0]] = rank
-        val_to_word[rank] = tuple[0]
+        word_to_val[tuple[0]] = rank + 1
+        val_to_word[rank + 1] = tuple[0]
     return word_to_val, val_to_word
 
 
