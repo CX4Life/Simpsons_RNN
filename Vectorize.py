@@ -33,11 +33,11 @@ def update_running_script(data, new_script):
 
 
 num_embeddings = get_all_cleaned_scripts()
-reverse_dictionary = json.load(open('lookup_dict.json', 'rb'))
+reverse_dictionary = json.load(open('lookup_dict.json', 'r'))
 reverse_dictionary['0'] = 'UNK'
 data = list()
 for emb in num_embeddings:
-    a_script = json.load(open(CLEANED_DIR + emb, 'rb'))
+    a_script = json.load(open(CLEANED_DIR + emb, 'r'))
     data = update_running_script(data, a_script)
 
 dictionary = dict(zip(reverse_dictionary.values(), reverse_dictionary.keys()))
@@ -85,7 +85,7 @@ valid_size = 16     # Random set of words to evaluate similarity on.
 valid_window = 100  # Only pick dev samples in the head of the distribution.
 valid_examples = np.random.choice(valid_window, valid_size, replace=False)
 num_sampled = 64    # Number of negative examples to sample.
-vocabulary_size = 10000
+vocabulary_size = 10001
 
 graph = tf.Graph()
 
