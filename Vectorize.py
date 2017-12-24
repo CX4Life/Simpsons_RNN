@@ -111,10 +111,21 @@ with graph.as_default():
   # convert train_context to a one-hot format
   train_one_hot = tf.one_hot(train_context, vocabulary_size)
 
-  cross_entropy = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=hidden_out, labels=train_one_hot))
+  # Construct the variables for the NCE loss
+  nce_weights = tf.Variable(
+      tf.truncated_normal([vocabulary_size, embedding_size],
+                          stddev=1.0 / math.sqrt(embedding_size)))
+  nce_biases = tf.Variable(tf.zeros([vocabulary_size]))
 
-  # Construct the SGD optimizer using a learning rate of 1.0.
-  optimizer = tf.train.GradientDescentOptimizer(1.0).minimize(cross_entropy)
+  nce_loss = tf.reduce_mean(
+      tf.nn.nce_loss(weights=nce_weights,
+                     biases=nce_biases,
+                     labels=train_context,
+                     inputs=embed,
+                     num_sampled=num_sampled,
+                     num_classes=vocabulary_size))
+
+  optimizer = tf.train.GradientDescentOptimizer(1.0).minimize(nce_loss)
 
   # Compute the cosine similarity between minibatch examples and all embeddings.
   norm = tf.sqrt(tf.reduce_sum(tf.square(embeddings), 1, keep_dims=True))
